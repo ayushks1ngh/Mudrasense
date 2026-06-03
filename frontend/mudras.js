@@ -1,3 +1,6 @@
+// Configuration - can be overridden by environment
+const API_BASE_URL = window.API_BASE_URL || (process.env.API_BASE_URL || 'http://localhost:4000');
+
 const asamyutaMudras = [
   { 
     id: 1, 
@@ -379,7 +382,7 @@ async function analyzeMudra() {
     formData.append('mudraName', currentMudra.name);
     formData.append('description', currentMudra.handFormation);
 
-    const response = await fetch('http://localhost:4000/analyze', {
+    const response = await fetch(`${API_BASE_URL}/analyze`, {
       method: 'POST',
       body: formData
     });
@@ -404,7 +407,7 @@ async function analyzeMudra() {
     if (data.resultId) {
       (async () => {
         try {
-          const fileResp = await fetch(`http://localhost:3000/result/${data.resultId}`);
+          const fileResp = await fetch(`${API_BASE_URL}/result/${data.resultId}`);
           if (fileResp.ok) {
             const fileJson = await fileResp.json();
             if (fileJson?.feedback) {
