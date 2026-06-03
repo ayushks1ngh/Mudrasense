@@ -10,7 +10,18 @@ dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// Performance: Set cache headers for health checks
+app.use((req, res, next) => {
+  if (req.path === '/health') {
+    res.set('Cache-Control', 'public, max-age=10');
+  } else if (req.path.startsWith('/result/')) {
+    // Cache results for 1 hour (they're immutable)
+    res.set('Cache-Control', 'public, max-age=3600');
+  }
+  next();
+});
 
 // Simple rate limiting for production
 const requestLog = {};
