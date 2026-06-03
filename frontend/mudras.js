@@ -378,83 +378,106 @@ async function analyzeMudra() {
   const analyzeBtn = document.querySelector('.action-btn.primary');
   const originalText = analyzeBtn.innerHTML;
   
-  try {
-    // Show loading state
-    analyzeBtn.disabled = true;
-    analyzeBtn.innerHTML = '<span>⏳</span> Analyzing...';
+  const MAX_RETRIES = 3;
+  let retryCount = 0;
 
-    const formData = new FormData();
-    formData.append('image', file);
-    formData.append('mudraName', currentMudra.name);
-    formData.append('description', currentMudra.handFormation);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-
-    const response = await fetch(`${API_BASE_URL}/analyze`, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    // Try to parse JSON response (whether ok or not) so we can show server-provided messages
-    let data;
+  const attemptAnalysis = async () => {
     try {
-      data = await response.json();
-    } catch (e) {
-      throw new Error('Invalid JSON response from server');
-    }
+      // Show loading state
+      analyzeBtn.disabled = true;
+      analyzeBtn.innerHTML = retryCount > 0 
+        ? `<span>⏳</span> Retrying (${retryCount}/${MAX_RETRIES})...`
+        : '<span>⏳</span> Analyzing...';
 
-    if (!response.ok) {
-      const serverMsg = data?.error || data?.details || 'Network response was not ok';
-      throw new Error(serverMsg);
-    }
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('mudraName', currentMudra.name);
+      formData.append('description', currentMudra.handFormation);
 
-    // Always show server-returned feedback immediately (so UI never blocks)
-    let feedbackToShow = data.feedback || '';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-    // Try to fetch persisted copy if available, but failure should not block showing feedback
-    if (data.resultId) {
-      (async () => {
-        try {
-          const fileResp = await fetch(`${API_BASE_URL}/result/${data.resultId}`);
-          if (fileResp.ok) {
-            const fileJson = await fileResp.json();
-            if (fileJson?.feedback) {
-              // Update displayed feedback to the persisted version
-              showFeedback(fileJson.feedback, false);
-              return;
-            }
-          } else {
-            console.warn('Could not fetch stored result (status):', fileResp.status, fileResp.statusText);
-          }
-        } catch (err) {
-          console.warn('Error fetching stored result:', err);
+      const response = await fetch(`${API_BASE_URL}/analyze`, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      // Try to parse JSON response (whether ok or not) so we can show server-provided messages
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error('Invalid JSON response from server');
+      }
+
+      if (!response.ok) {
+        // Retry on 5xx errors and timeout
+        if ((response.status >= 500 || response.status === 0) && retryCount < MAX_RETRIES) {
+          retryCount++;
+          console.warn(`API error, retrying (${retryCount}/${MAX_RETRIES})...`);
+          return attemptAnalysis();
         }
-      })();
+        const serverMsg = data?.error || data?.details || 'Network response was not ok';
+        throw new Error(serverMsg);
+      }
+
+      // Always show server-returned feedback immediately (so UI never blocks)
+      let feedbackToShow = data.feedback || '';
+
+      // Try to fetch persisted copy if available, but failure should not block showing feedback
+      if (data.resultId) {
+        (async () => {
+          try {
+            const fileResp = await fetch(`${API_BASE_URL}/result/${data.resultId}`);
+            if (fileResp.ok) {
+              const fileJson = await fileResp.json();
+              if (fileJson?.feedback) {
+                // Update displayed feedback to the persisted version
+                showFeedback(fileJson.feedback, false);
+                return;
+              }
+            } else {
+              console.warn('Could not fetch stored result (status):', fileResp.status, fileResp.statusText);
+            }
+          } catch (err) {
+            console.warn('Error fetching stored result:', err);
+          }
+        })();
+      }
+
+      // Show feedback in-page immediately
+      showFeedback(feedbackToShow, false);
+
+    } catch (error) {
+      console.error('Error during analyze:', error);
+      
+      // Retry on network errors
+      if ((error?.name === 'AbortError' || error?.message?.includes('fetch')) && retryCount < MAX_RETRIES) {
+        retryCount++;
+        console.warn(`Network error, retrying (${retryCount}/${MAX_RETRIES})...`);
+        return attemptAnalysis();
+      }
+
+      // Try to extract server-provided message
+      let msg = 'Sorry, there was an error analyzing your mudra. Please try again.';
+      if (error?.name === 'AbortError') {
+        msg = 'Analysis took too long. Please check your connection and try again.';
+      } else if (error?.message) {
+        msg = error.message;
+      }
+
+      showFeedback(msg, true);
+    } finally {
+      // Restore button state
+      analyzeBtn.disabled = false;
+      analyzeBtn.innerHTML = originalText;
     }
+  };
 
-    // Show feedback in-page immediately
-    showFeedback(feedbackToShow, false);
-
-  } catch (error) {
-    console.error('Error during analyze:', error);
-    // Try to extract server-provided message
-    let msg = 'Sorry, there was an error analyzing your mudra. Please try again.';
-    if (error?.name === 'AbortError') {
-      msg = 'Analysis took too long. Please check your connection and try again.';
-    } else if (error?.message) {
-      msg = error.message;
-    }
-
-    showFeedback(msg, true);
-  } finally {
-    // Restore button state
-    analyzeBtn.disabled = false;
-    analyzeBtn.innerHTML = originalText;
-  }
+  return attemptAnalysis();
 }
 
 // Initialize on page load
