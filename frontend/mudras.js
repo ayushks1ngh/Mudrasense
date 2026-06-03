@@ -471,4 +471,26 @@ document.addEventListener('DOMContentLoaded', () => {
       analyzeMudra(e);
     });
   }
+
+  // Keyboard navigation: Escape to close modal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('feedbackModal');
+      if (modal && modal.style.display !== 'none') {
+        modal.style.display = 'none';
+      }
+    }
+  });
+
+  // Upload area keyboard support
+  const uploadArea = document.getElementById('uploadArea');
+  if (uploadArea) {
+    uploadArea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const fileInput = document.getElementById('fileInput');
+        fileInput?.click();
+      }
+    });
+  }
 });

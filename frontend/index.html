@@ -21,7 +21,7 @@
         Each hand gesture tells a story, conveys emotion, and brings ancient classical dance to life. 
         Begin your journey into this timeless art form today.
       </p>
-      <button class="cta-button" onclick="startLearning()">
+      <button class="cta-button" onclick="startLearning()" aria-label="Start learning Bharatanatyam mudras">
         <span>Start Learning</span>
         <span class="arrow">→</span>
       </button>
@@ -49,7 +49,7 @@
   <!-- Learning Page -->
   <div class="learning-page" id="learningPage">
     <div class="header-pattern"></div>
-    <button class="back-button" onclick="goHome()">
+    <button class="back-button" onclick="goHome()" aria-label="Go back to home page">
       <span>←</span> Back to Home
     </button>
     <div class="header">
@@ -62,7 +62,7 @@
   <!-- Mudra Detail Page -->
   <div class="detail-page" id="detailPage">
     <div class="header-pattern"></div>
-    <button class="back-button" onclick="backToLearning()">
+    <button class="back-button" onclick="backToLearning()" aria-label="Go back to mudra list">
       <span>←</span> Back to Mudras
     </button>
     
@@ -108,8 +108,8 @@
         <div class="detail-section">
           <h2>📤 Practice Your Mudra</h2>
           <div class="upload-container">
-            <div class="upload-area" id="uploadArea">
-              <input type="file" id="fileInput" accept="image/*" onchange="handleImageUpload(event)">
+            <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="Click or drag to upload mudra image">
+              <input type="file" id="fileInput" accept="image/*" onchange="handleImageUpload(event)" aria-label="Upload mudra image file">
               <div class="upload-prompt">
                 <span class="upload-icon">📷</span>
                 <p class="upload-text">Click to upload or drag and drop</p>
@@ -119,10 +119,10 @@
             <div class="preview-container" id="previewContainer" style="display: none;">
               <img id="imagePreview" alt="Uploaded mudra">
               <div class="preview-actions">
-                <button class="action-btn" onclick="clearUpload()">
+                <button class="action-btn" onclick="clearUpload()" aria-label="Remove uploaded image">
                   <span>🗑️</span> Remove
                 </button>
-                <button class="action-btn primary" onclick="analyzeMudra()">
+                <button class="action-btn primary" onclick="analyzeMudra()" aria-label="Analyze the uploaded mudra image">
                   <span>✨</span> Analyze Mudra
                 </button>
               </div>
@@ -134,11 +134,11 @@
   </div>
 
   <script src="mudras.js"></script>
-  <div id="feedbackModal" class="feedback-modal" style="display:none;">
+  <div id="feedbackModal" class="feedback-modal" style="display:none;" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
   <div class="modal-content">
-    <h2>Analysis Result</h2>
+    <h2 id="modalTitle">Analysis Result</h2>
     <div id="modalFeedbackText" class="feedback-text"></div>
-    <button id="closeModalBtn">Close</button>
+    <button id="closeModalBtn" aria-label="Close feedback modal">Close</button>
   </div>
 </div>
 
