@@ -12,6 +12,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`📨 ${req.method} ${req.path}`);
+  next();
+});
+
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
@@ -209,9 +215,18 @@ app.use((err, req, res, next) => {
   next();
 });
 
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    error: 'Endpoint not found' 
+  });
+});
+
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`✅ MudraSense Server running on port ${port}`);
   console.log(`📍 Health check: http://localhost:${port}/health`);
   console.log(`📸 Analysis endpoint: http://localhost:${port}/analyze`);
+  console.log(`🔐 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
