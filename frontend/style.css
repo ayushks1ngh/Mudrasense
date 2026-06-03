@@ -643,10 +643,12 @@ body {
     top: 15px;
     left: 15px;
     padding: 10px 20px;
+    font-size: 0.9rem;
   }
 
   .mudra-grid {
     grid-template-columns: 1fr;
+    gap: 15px;
   }
 
   .detail-header h1 {
@@ -669,6 +671,30 @@ body {
   .action-btn {
     width: 100%;
     justify-content: center;
+    padding: 10px 20px;
+    font-size: 0.95rem;
+  }
+
+  .upload-area {
+    padding: 40px 20px;
+  }
+
+  .upload-icon {
+    font-size: 3rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .cta-button {
+    padding: 14px 30px;
+    font-size: 1rem;
+  }
+
+  .learning-page h1 {
+    font-size: 2rem;
   }
 }
 
