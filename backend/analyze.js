@@ -14,7 +14,21 @@ app.use(express.json());
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-const upload = multer({ dest: uploadDir });
+
+// Allowed image MIME types for mudra analysis
+const ALLOWED_MIMES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+const upload = multer({ 
+  dest: uploadDir,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_MIMES.includes(file.mimetype)) {
+      return cb(new Error("Invalid file type. Only JPEG, PNG, and WebP images are allowed."));
+    }
+    cb(null, true);
+  }
+});
 
 // Directory where we persist analysis results as JSON files
 const resultsDir = path.join(process.cwd(), "results");
@@ -26,7 +40,23 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "No image file uploaded" });
     }
 
-    const { mudraName, description } = req.body;
+    let { mudraName, description } = req.body;
+
+    // Input validation
+    if (!mudraName || typeof mudraName !== "string" || mudraName.trim().length === 0) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "Invalid mudra name" });
+    }
+
+    if (!description || typeof description !== "string" || description.trim().length === 0) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "Invalid mudra description" });
+    }
+
+    // Sanitize inputs - limit length to prevent prompt injection
+    mudraName = mudraName.trim().substring(0, 100);
+    description = description.trim().substring(0, 1000);
+
     const imagePath = req.file.path;
 
     if (!process.env.GOOGLE_API_KEY) {
@@ -40,6 +70,7 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
     // Read and convert image to base64
     const imageBuffer = fs.readFileSync(imagePath);
     const imageBase64 = imageBuffer.toString("base64");
+    const mimeType = req.file.mimetype || "image/jpeg";
 
     // Create the analysis prompt
     const prompt = `You are a kind and encouraging Bharatanatyam dance teacher analyzing a student's mudra attempt.
@@ -80,7 +111,7 @@ Be warm, supportive, and focus on encouragement. Students learn better with posi
       {
         inlineData: {
           data: imageBase64,
-          mimeType: req.file.mimetype || "image/jpeg",
+          mimeType: mimeType,
         },
       },
     ]);
@@ -154,6 +185,28 @@ app.get('/result/:id', (req, res) => {
     console.error('Failed to read result file:', err);
     return res.status(500).json({ success: false, error: 'Failed to read result' });
   }
+});
+
+// Multer error handling middleware
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'FILE_TOO_LARGE') {
+      return res.status(413).json({ 
+        success: false, 
+        error: 'File is too large. Maximum size is 5MB.' 
+      });
+    }
+    return res.status(400).json({ 
+      success: false, 
+      error: `Upload error: ${err.message}` 
+    });
+  } else if (err) {
+    return res.status(400).json({ 
+      success: false, 
+      error: err.message || 'An error occurred' 
+    });
+  }
+  next();
 });
 
 const port = process.env.PORT || 4000;
