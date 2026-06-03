@@ -696,6 +696,15 @@ body {
   max-height: 60vh;
   overflow-y: auto;
   margin-bottom: 20px;
+  text-align: left;
+}
+
+.feedback-text.error {
+  color: #c92a2a;
+  background: #ffebee;
+  padding: 15px;
+  border-radius: 10px;
+  border-left: 4px solid #c92a2a;
 }
 
 .modal-content button {

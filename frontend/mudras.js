@@ -264,12 +264,11 @@ function showFeedback(feedback, isError) {
 
     if (feedbackText) {
         feedbackText.innerHTML = feedback.replace(/\n/g, '<br>');
-        if (isError) {
-            feedbackText.style.color = 'red';
-        } else {
-            feedbackText.style.color = '#5d4e37'; // default feedback color
-        }
+        feedbackText.style.color = isError ? '#c92a2a' : '#5d4e37';
+        feedbackText.className = isError ? 'feedback-text error' : 'feedback-text';
         modal.style.display = 'flex';
+        // Scroll modal into view
+        modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
 
@@ -376,16 +375,29 @@ async function analyzeMudra() {
   const file = fileInput.files[0];
   if (!file) return;
 
+  const analyzeBtn = document.querySelector('.action-btn.primary');
+  const originalText = analyzeBtn.innerHTML;
+  
   try {
+    // Show loading state
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span>⏳</span> Analyzing...';
+
     const formData = new FormData();
     formData.append('image', file);
     formData.append('mudraName', currentMudra.name);
     formData.append('description', currentMudra.handFormation);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
     const response = await fetch(`${API_BASE_URL}/analyze`, {
       method: 'POST',
-      body: formData
+      body: formData,
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     // Try to parse JSON response (whether ok or not) so we can show server-provided messages
     let data;
@@ -431,20 +443,17 @@ async function analyzeMudra() {
     console.error('Error during analyze:', error);
     // Try to extract server-provided message
     let msg = 'Sorry, there was an error analyzing your mudra. Please try again.';
-    try {
-      if (error?.message) msg = error.message;
-    } catch (e) {}
-
-    // Display error in feedback section (avoid alert)
-    const feedbackSection = document.getElementById('feedbackSection');
-    const feedbackContent = document.getElementById('feedbackContent');
-    if (feedbackContent) {
-      feedbackContent.innerHTML = `<div class="error-message">${msg.replace(/\n/g,'<br>')}</div>`;
-      feedbackSection.style.display = 'block';
-      feedbackSection.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      alert(msg);
+    if (error?.name === 'AbortError') {
+      msg = 'Analysis took too long. Please check your connection and try again.';
+    } else if (error?.message) {
+      msg = error.message;
     }
+
+    showFeedback(msg, true);
+  } finally {
+    // Restore button state
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = originalText;
   }
 }
 
