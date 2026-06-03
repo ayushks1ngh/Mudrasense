@@ -12,6 +12,36 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Simple rate limiting for production
+const requestLog = {};
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 30;
+
+const rateLimit = (req, res, next) => {
+  const now = Date.now();
+  const clientIp = req.ip || req.connection.remoteAddress;
+  
+  if (!requestLog[clientIp]) {
+    requestLog[clientIp] = [];
+  }
+  
+  // Clean old entries
+  requestLog[clientIp] = requestLog[clientIp].filter(time => now - time < RATE_LIMIT_WINDOW);
+  
+  if (requestLog[clientIp].length >= MAX_REQUESTS_PER_WINDOW) {
+    console.warn(`⚠️ Rate limit exceeded for ${clientIp}`);
+    return res.status(429).json({ 
+      success: false, 
+      error: 'Too many requests. Please try again later.' 
+    });
+  }
+  
+  requestLog[clientIp].push(now);
+  next();
+};
+
+app.use(rateLimit);
+
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`📨 ${req.method} ${req.path}`);
