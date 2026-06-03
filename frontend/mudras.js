@@ -386,6 +386,12 @@ function clearUpload() {
   document.getElementById('uploadArea').style.display = 'block';
   document.getElementById('previewContainer').style.display = 'none';
   document.getElementById('imagePreview').src = '';
+  // Clear any previous error messages
+  const analyzeBtn = document.querySelector('.action-btn.primary');
+  if (analyzeBtn) {
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = '<span>✨</span> Analyze Mudra';
+  }
 }
 
 async function analyzeMudra() {
@@ -437,7 +443,9 @@ async function analyzeMudra() {
         // Retry on 5xx errors and timeout
         if ((response.status >= 500 || response.status === 0) && retryCount < MAX_RETRIES) {
           retryCount++;
-          console.warn(`API error, retrying (${retryCount}/${MAX_RETRIES})...`);
+          console.warn(`API error (${response.status}), retrying (${retryCount}/${MAX_RETRIES})...`);
+          // Add exponential backoff
+          await new Promise(r => setTimeout(r, Math.pow(2, retryCount) * 500));
           return attemptAnalysis();
         }
         const serverMsg = data?.error || data?.details || 'Network response was not ok';
@@ -478,6 +486,8 @@ async function analyzeMudra() {
       if ((error?.name === 'AbortError' || error?.message?.includes('fetch')) && retryCount < MAX_RETRIES) {
         retryCount++;
         console.warn(`Network error, retrying (${retryCount}/${MAX_RETRIES})...`);
+        // Add exponential backoff
+        await new Promise(r => setTimeout(r, Math.pow(2, retryCount) * 500));
         return attemptAnalysis();
       }
 
