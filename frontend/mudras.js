@@ -352,7 +352,27 @@ function handleImageUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
+  // Validate file size
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  if (file.size > MAX_SIZE) {
+    showFeedback('File size exceeds 5MB limit. Please choose a smaller image.', true);
+    clearUpload();
+    return;
+  }
+
+  // Validate file type
+  const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    showFeedback('Invalid file type. Only JPEG, PNG, and WebP images are allowed.', true);
+    clearUpload();
+    return;
+  }
+
   const reader = new FileReader();
+  reader.onerror = () => {
+    showFeedback('Failed to read file. Please try another image.', true);
+    clearUpload();
+  };
   reader.onload = function(e) {
     document.getElementById('imagePreview').src = e.target.result;
     document.getElementById('uploadArea').style.display = 'none';
