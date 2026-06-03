@@ -545,5 +545,33 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInput?.click();
       }
     });
+
+    // Drag and drop support
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.style.borderColor = '#ff8a00';
+      uploadArea.style.backgroundColor = '#ffd9b3';
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.style.borderColor = '#ffb366';
+      uploadArea.style.backgroundColor = 'linear-gradient(135deg, #fff5e6 0%, #ffe4cc 100%)';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.style.borderColor = '#ffb366';
+      uploadArea.style.backgroundColor = 'linear-gradient(135deg, #fff5e6 0%, #ffe4cc 100%)';
+      
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        document.getElementById('fileInput').files = files;
+        handleImageUpload({ target: { files: files } });
+      }
+    });
   }
 });
