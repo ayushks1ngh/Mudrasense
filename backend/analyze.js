@@ -181,7 +181,8 @@ Be warm, supportive, and focus on encouragement. Students learn better with posi
       success: true,
       feedback,
       mudraName,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      clientIp: req.ip || req.connection.remoteAddress
     };
 
     const resultPath = path.join(resultsDir, `${resultId}.json`);
@@ -202,6 +203,9 @@ Be warm, supportive, and focus on encouragement. Students learn better with posi
       mudraName,
       resultId
     });
+
+    // Log successful analysis
+    console.log(`✨ Analysis complete: ${mudraName} (ID: ${resultId})`);
 
   } catch (error) {
     console.error("Error analyzing mudra:", error);
